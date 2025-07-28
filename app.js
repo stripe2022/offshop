@@ -12,7 +12,6 @@ function generarUUID() {
   });
 }
 
-// Inicializar IndexedDB
 function initDB() {
   const request = indexedDB.open("barylieDB", 1);
 
@@ -23,6 +22,7 @@ function initDB() {
   request.onsuccess = (event) => {
     db = event.target.result;
     cargarProductosDesdeDB();
+    mostrarNumeroTicketActual();
   };
 
   request.onupgradeneeded = (event) => {
@@ -42,6 +42,28 @@ function obtenerFechaHoraActual() {
   const opcionesHora = { hour: 'numeric', minute: '2-digit', hour12: true };
   return ahora.toLocaleDateString('es-ES', opcionesFecha) + ' ' + ahora.toLocaleTimeString('es-ES', opcionesHora);
 }
+
+function obtenerNumeroTicketDelDia(callback) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const tx = db.transaction("ventas", "readonly");
+  const store = tx.objectStore("ventas");
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    const ventasDelDia = request.result.filter(v => v.fecha.startsWith(hoy.split('-').reverse().join('/')));
+    callback(ventasDelDia.length + 1);
+  };
+}
+
+function mostrarNumeroTicketActual() {
+  obtenerNumeroTicketDelDia((numeroTicket) => {
+    const numeroSpan = document.getElementById('numero-recibo');
+    if (numeroSpan) {
+      numeroSpan.textContent = numeroTicket;
+    }
+  });
+}
+
 
 function actualizarTotalProductos() {
   const totalEl = document.getElementById('total-productos');
@@ -64,27 +86,33 @@ function guardarVenta() {
   const entrega = document.querySelector('input[name="entrega"]:checked').value;
   const comentario = document.getElementById('comentario')?.value || '';
 
-  const venta = {
-    id: generarUUID(),
-    fecha: obtenerFechaHoraActual(),
-    productos: carrito,
-    total: parseFloat(document.getElementById('total').textContent),
-    entrega,
-    comentario
-  };
+  obtenerNumeroTicketDelDia((numeroTicket) => {
+    const venta = {
+      id: generarUUID(),
+      fecha: obtenerFechaHoraActual(),
+      numeroTicket,
+      productos: carrito,
+      total: parseFloat(document.getElementById('total').textContent),
+      entrega,
+      comentario
+    };
 
-  const tx = db.transaction("ventas", "readwrite");
-  const store = tx.objectStore("ventas");
-  store.add(venta);
+    const tx = db.transaction("ventas", "readwrite");
+    const store = tx.objectStore("ventas");
+    store.add(venta);
 
-  ventas.push(venta);
-  carrito = [];
-  renderizarProductos();
-  calcularTotal();
-  document.getElementById('comentario').value = '';
-  document.getElementById('producto').value = '';
-  document.getElementById('cantidad').value = '1';
-  alert("✅ Venta guardada correctamente");
+    ventas.push(venta);
+    carrito = [];
+    renderizarProductos();
+    calcularTotal();
+    document.getElementById('comentario').value = '';
+    document.getElementById('producto').value = '';
+    document.getElementById('cantidad').value = '1';
+
+    mostrarNumeroTicketActual();
+
+    alert(`✅ Venta #${numeroTicket} guardada correctamente`);
+  });
 }
 
 function cargarProductosDesdeDB() {
@@ -176,13 +204,9 @@ function renderizarProductos() {
     const div = document.createElement('div');
     div.className = 'producto-item';
     div.innerHTML = `
-  <div class="producto-info">
-    <span>${item.nombre} <span class="cantidad-x">x${item.cantidad}</span></span>
-    <span class="subtotal"> $${subtotal}</span>
-  </div>
-  <button class="btn-eliminar" onclick="eliminarProducto(${i})">✖️</button>
-`;
-
+      ${item.nombre} x ${item.cantidad} - $${subtotal}
+      <button class="btn-eliminar" onclick="eliminarProducto(${i})">✖️</button>
+    `;
     contenedor.appendChild(div);
   });
 }
@@ -226,3 +250,66 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+function aplicarFiltro() {
+  const dia = document.getElementById('filtro-dia').value;
+  const inicio = document.getElementById('filtro-semana-inicio').value;
+  const fin = document.getElementById('filtro-semana-fin').value;
+
+  const tx = db.transaction("ventas", "readonly");
+  const store = tx.objectStore("ventas");
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    const ventas = request.result;
+    let filtradas = [];
+
+    if (dia) {
+      filtradas = ventas.filter(v => v.fecha.startsWith(formatearFechaHTML(dia)));
+    } else if (inicio && fin) {
+      const ini = new Date(inicio);
+      const finDate = new Date(fin);
+      filtradas = ventas.filter(v => {
+        const [dd, mm, yyyy] = v.fecha.split(' ')[0].split('/');
+        const fechaVenta = new Date(`${yyyy}-${mm}-${dd}`);
+        return fechaVenta >= ini && fechaVenta <= finDate;
+      });
+    } else {
+      alert("Selecciona un día o rango de semana");
+      return;
+    }
+
+    renderizarResultadosHistorial(filtradas);
+  };
+}
+function formatearFechaHTML(fechaInput) {
+  const [yyyy, mm, dd] = fechaInput.split("-");
+  return `${dd}/${mm}/${yyyy}`;
+}
+function renderizarResultadosHistorial(lista) {
+  const contenedor = document.getElementById('resultados-historial');
+  contenedor.innerHTML = '';
+
+  if (lista.length === 0) {
+    contenedor.innerHTML = "<p style='text-align:center;'>❌ No hay ventas registradas para ese período.</p>";
+    return;
+  }
+
+  lista
+    .sort((a, b) => new Date(b.fecha.split(' ')[0].split('/').reverse().join('-')) - new Date(a.fecha.split(' ')[0].split('/').reverse().join('-')))
+    .forEach((venta) => {
+      const productos = venta.productos.map(p => `${p.nombre} x${p.cantidad}`).join(', ');
+      const div = document.createElement('div');
+      div.className = 'venta-item';
+      div.innerHTML = `
+        <p><strong>📄 Recibo #${venta.numeroTicket || '—'} del día</strong></p>
+        <p><strong>📅 Fecha:</strong> ${venta.fecha}</p>
+        <p><strong>🛒 Productos:</strong> ${productos}</p>
+        <p><strong>💵 Total:</strong> $${venta.total.toFixed(2)}</p>
+        ${venta.entrega ? `<p><strong>🚚 Entrega:</strong> ${venta.entrega}</p>` : ''}
+        ${venta.comentario ? `<p><strong>📝 Comentario:</strong> ${venta.comentario}</p>` : ''}
+        <hr>
+      `;
+      contenedor.appendChild(div);
+    });
+}
