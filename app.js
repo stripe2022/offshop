@@ -169,9 +169,13 @@ function renderizarProductos() {
     const div = document.createElement('div');
     div.className = 'producto-item';
     div.innerHTML = `
-      ${item.nombre} x ${item.cantidad} - $${subtotal}
-      <button class="btn-eliminar" onclick="eliminarProducto(${i})">✖️</button>
-    `;
+  <div class="producto-info">
+    <span>${item.nombre} <span class="cantidad-x">x${item.cantidad}</span></span>
+    <span class="subtotal"> $${subtotal}</span>
+  </div>
+  <button class="btn-eliminar" onclick="eliminarProducto(${i})">✖️</button>
+`;
+
     contenedor.appendChild(div);
   });
 }
