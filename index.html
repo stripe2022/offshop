@@ -133,9 +133,38 @@
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(id).classList.add('active');
     }
-    function volver() {
-      mostrar('pantalla-principal');
-    }
+   function volver() {
+  // Mostrar pantalla principal
+  mostrar('pantalla-principal');
+
+  // Limpiar filtros
+  document.getElementById('filtro-dia').value = '';
+  document.getElementById('filtro-semana-inicio').value = '';
+  document.getElementById('filtro-semana-fin').value = '';
+
+  // Limpiar resultados del historial
+  const contenedor = document.getElementById('resultados-historial');
+  if (contenedor) {
+    contenedor.innerHTML = '';
+    contenedor.style.display = 'none';
+  }
+
+  // Limpiar campos de entrada
+  const comentario = document.getElementById('comentario');
+  if (comentario) comentario.value = '';
+
+  const select = document.getElementById('producto');
+  if (select) select.value = '';
+
+  const cantidad = document.getElementById('cantidad');
+  if (cantidad) cantidad.value = '1';
+
+  // Vaciar el carrito
+  carrito = [];
+  renderizarProductos();
+  calcularTotal();
+}
+
   </script>
 </body>
 </html>

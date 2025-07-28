@@ -170,6 +170,7 @@ function importarBackup(event) {
   reader.readAsText(file);
 }
 
+
 function agregarProducto() {
   const select = document.getElementById('producto');
   const cantidadInput = document.getElementById('cantidad');
