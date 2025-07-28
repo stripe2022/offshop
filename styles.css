@@ -242,3 +242,13 @@ button:hover {
 .btn-eliminar:hover {
   background: #d32f2f;
 }
+#busqueda {
+  width: 100%;
+  padding: 1.4rem;
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  color: #333;
+  box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+  margin-bottom: 1rem;
+}

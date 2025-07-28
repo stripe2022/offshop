@@ -3,85 +3,54 @@
 let productos = [];
 let ventas = [];
 let carrito = [];
+let db;
 
-// Formatear fecha y hora en formato latino (Cuba)
-function obtenerFechaHoraActual() {
-  const ahora = new Date();
-  const opciones = { year: 'numeric', month: '2-digit', day: '2-digit' };
-  const fecha = ahora.toLocaleDateString('es-ES', opciones);
+// Inicializar IndexedDB
+function initDB() {
+  const request = indexedDB.open("barylieDB", 1);
 
-  let horas = ahora.getHours();
-  let minutos = ahora.getMinutes();
-  const ampm = horas >= 12 ? 'PM' : 'AM';
-  horas = horas % 12;
-  horas = horas ? horas : 12;
-  minutos = minutos < 10 ? '0' + minutos : minutos;
-  const hora = `${horas}:${minutos} ${ampm}`;
-
-  return `${fecha} ${hora}`;
-}
-
-// Mostrar sección
-function mostrar(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-// Volver a pantalla principal
-function volver() {
-  mostrar('pantalla-principal');
-}
-
-// Agregar producto al resumen
-function agregarProducto() {
-  const select = document.getElementById('producto');
-  const cantidad = parseInt(document.getElementById('cantidad').value);
-  if (!select.value || isNaN(cantidad) || cantidad <= 0) return;
-
-  const prod = productos[parseInt(select.value)];
-  if (!prod) return;
-
-  const item = {
-    nombre: prod.nombre,
-    precio: prod.precioVenta,
-    costo: prod.precioCosto,
-    cantidad
+  request.onerror = (event) => {
+    console.error("Error al abrir IndexedDB", event);
   };
 
-  carrito.push(item);
-  renderizarProductos();
-  calcularTotal();
+  request.onsuccess = (event) => {
+    db = event.target.result;
+    cargarProductosDesdeDB();
+  };
+
+  request.onupgradeneeded = (event) => {
+    db = event.target.result;
+    if (!db.objectStoreNames.contains("ventas")) {
+      db.createObjectStore("ventas", { keyPath: "id" });
+    }
+    if (!db.objectStoreNames.contains("productos")) {
+      db.createObjectStore("productos", { keyPath: "codigo" });
+    }
+  };
 }
 
-// Renderizar productos añadidos
-function renderizarProductos() {
-  const lista = document.getElementById('lista-productos');
-  lista.innerHTML = '';
-  carrito.forEach((p, i) => {
-    const div = document.createElement('div');
-    div.classList.add('producto-item');
-    div.innerHTML = `
-      <span>${p.nombre} x${p.cantidad} - $${p.precio}</span>
-      <button class="btn-eliminar" onclick="eliminarProducto(${i})">✖️</button>
-    `;
-    lista.appendChild(div);
-  });
+function obtenerFechaHoraActual() {
+  const ahora = new Date();
+  const opcionesFecha = { day: '2-digit', month: '2-digit', year: 'numeric' };
+  const opcionesHora = { hour: 'numeric', minute: '2-digit', hour12: true };
+  return ahora.toLocaleDateString('es-ES', opcionesFecha) + ' ' + ahora.toLocaleTimeString('es-ES', opcionesHora);
 }
 
-// Eliminar producto añadido
-function eliminarProducto(index) {
-  carrito.splice(index, 1);
-  renderizarProductos();
-  calcularTotal();
+function actualizarTotalProductos() {
+  const totalEl = document.getElementById('total-productos');
+  if (totalEl) {
+    totalEl.textContent = productos.length;
+  } else {
+    const footer = document.querySelector('.footer');
+    if (footer) {
+      const match = footer.innerHTML.match(/Total de productos: \d+/);
+      if (match) {
+        footer.innerHTML = footer.innerHTML.replace(/Total de productos: \d+/, `Total de productos: ${productos.length}`);
+      }
+    }
+  }
 }
 
-// Calcular total
-function calcularTotal() {
-  const total = carrito.reduce((sum, p) => sum + p.precio * p.cantidad, 0);
-  document.getElementById('total').textContent = total.toFixed(2);
-}
-
-// Guardar venta
 function guardarVenta() {
   if (carrito.length === 0) return alert("Agrega al menos un producto");
 
@@ -97,6 +66,10 @@ function guardarVenta() {
     comentario
   };
 
+  const tx = db.transaction("ventas", "readwrite");
+  const store = tx.objectStore("ventas");
+  store.add(venta);
+
   ventas.push(venta);
   carrito = [];
   renderizarProductos();
@@ -107,78 +80,16 @@ function guardarVenta() {
   alert("✅ Venta guardada correctamente");
 }
 
-function actualizarTotalProductos() {
-  const totalEl = document.getElementById('total-productos');
-  if (totalEl) {
-    totalEl.textContent = productos.length;
-  } else {
-    // Intenta actualizar directamente si no está presente (por compatibilidad con texto fijo)
-    const footer = document.querySelector('.footer');
-    if (footer) {
-      const match = footer.innerHTML.match(/Total de productos: \d+/);
-      if (match) {
-        footer.innerHTML = footer.innerHTML.replace(/Total de productos: \d+/, `Total de productos: ${productos.length}`);
-      }
-    }
-  }
-}
+function cargarProductosDesdeDB() {
+  const tx = db.transaction("productos", "readonly");
+  const store = tx.objectStore("productos");
+  const request = store.getAll();
 
-// Importar ventas o productos desde archivo JSON
-const importarInput = document.getElementById('importarInput');
-if (importarInput) {
-  importarInput.addEventListener('change', function (e) {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function (event) {
-      try {
-        const data = JSON.parse(event.target.result);
-        const timestamp = Date.now();
-
-        // Si es array => ventas
-        if (Array.isArray(data)) {
-          ventas = [...ventas, ...data];
-          alert("✅ Ventas importadas exitosamente");
-        }
-
-        // Si tiene productos
-        else if (data.productos && Array.isArray(data.productos)) {
-          productos = data.productos;
-          const select = document.getElementById('producto');
-          select.innerHTML = '<option value="">-- Selecciona un producto --</option>';
-          productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
-          productos.forEach((p, i) => {
-            const opt = document.createElement('option');
-            opt.value = i;
-            opt.textContent = p.nombre;
-            select.appendChild(opt);
-          });
-          actualizarTotalProductos();
-          alert("✅ Productos importados correctamente");
-        } else {
-          alert("⚠️ El archivo no tiene el formato esperado");
-        }
-      } catch (err) {
-        console.error(err);
-        alert("❌ Error al leer el archivo JSON");
-      }
-    };
-    reader.readAsText(file);
-    importarInput.value = '';
-  });
-}
-
-// Inicializar datos al cargar
-window.addEventListener('DOMContentLoaded', () => {
-  const fecha = obtenerFechaHoraActual();
-  document.getElementById('fecha-hora').textContent = fecha;
-
-  fetch('productos.json')
-    .then(res => res.json())
-    .then(data => {
-      productos = data.productos;
-      const select = document.getElementById('producto');
+  request.onsuccess = () => {
+    productos = request.result;
+    const select = document.getElementById('producto');
+    if (select) {
+      select.innerHTML = '<option value="">-- Selecciona un producto --</option>';
       productos.sort((a, b) => a.nombre.localeCompare(b.nombre));
       productos.forEach((p, i) => {
         const opt = document.createElement('option');
@@ -186,6 +97,104 @@ window.addEventListener('DOMContentLoaded', () => {
         opt.textContent = p.nombre;
         select.appendChild(opt);
       });
-      actualizarTotalProductos();
-    });
+    }
+    actualizarTotalProductos();
+  };
+}
+
+function importarBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const backup = JSON.parse(reader.result);
+      if (!Array.isArray(backup.productos)) throw new Error("Archivo inválido");
+
+      const tx = db.transaction("productos", "readwrite");
+      const store = tx.objectStore("productos");
+
+      backup.productos.forEach(prod => {
+        if (prod && prod.codigo && prod.nombre) {
+          store.put(prod);
+        }
+      });
+
+      tx.oncomplete = () => {
+        cargarProductosDesdeDB();
+        alert("✅ Productos importados con éxito");
+      };
+
+    } catch (e) {
+      alert("❌ Archivo inválido");
+    }
+  };
+
+  reader.readAsText(file);
+}
+
+function agregarProducto() {
+  const select = document.getElementById('producto');
+  const cantidadInput = document.getElementById('cantidad');
+
+  const index = parseInt(select.value);
+  const cantidad = parseInt(cantidadInput.value);
+
+  if (isNaN(index) || index < 0 || isNaN(cantidad) || cantidad < 1) {
+    return alert("Selecciona un producto y cantidad válida");
+  }
+
+  const producto = productos[index];
+
+  const existente = carrito.find(p => p.codigo === producto.codigo);
+  if (existente) {
+    existente.cantidad += cantidad;
+  } else {
+    carrito.push({ ...producto, cantidad });
+  }
+
+  renderizarProductos();
+  calcularTotal();
+  select.value = '';
+  cantidadInput.value = '1';
+}
+
+function renderizarProductos() {
+  const contenedor = document.getElementById('lista-productos');
+  contenedor.innerHTML = '';
+  carrito.forEach((item, i) => {
+    const subtotal = (item.precioVenta * item.cantidad).toFixed(2);
+    const div = document.createElement('div');
+    div.className = 'producto-item';
+    div.innerHTML = `
+      ${item.nombre} x ${item.cantidad} - $${subtotal}
+      <button class="btn-eliminar" onclick="eliminarProducto(${i})">✖️</button>
+    `;
+    contenedor.appendChild(div);
+  });
+}
+
+function eliminarProducto(index) {
+  carrito.splice(index, 1);
+  renderizarProductos();
+  calcularTotal();
+}
+
+function calcularTotal() {
+  const total = carrito.reduce((acc, item) => acc + (item.precioVenta * item.cantidad), 0);
+  document.getElementById('total').textContent = total.toFixed(2);
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const fecha = obtenerFechaHoraActual();
+  const fechaElem = document.getElementById('fecha-hora');
+  if (fechaElem) fechaElem.textContent = fecha;
+  initDB();
+
+  const inputImportar = document.getElementById('importarInput');
+  if (inputImportar) {
+    inputImportar.addEventListener('change', importarBackup);
+  }
 });
