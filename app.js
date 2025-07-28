@@ -291,9 +291,12 @@ function renderizarResultadosHistorial(lista) {
   contenedor.innerHTML = '';
 
   if (lista.length === 0) {
+    contenedor.style.display = 'none'; // Ocultar si no hay resultados
     contenedor.innerHTML = "<p style='text-align:center;'>❌ No hay ventas registradas para ese período.</p>";
     return;
   }
+
+  contenedor.style.display = 'block'; // Mostrar si hay resultados
 
   lista
     .sort((a, b) => new Date(b.fecha.split(' ')[0].split('/').reverse().join('-')) - new Date(a.fecha.split(' ')[0].split('/').reverse().join('-')))
