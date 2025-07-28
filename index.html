@@ -1,1 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Barylie Shop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>📋 Barylie Shop</header>
+  <div class="animacion-header">
+  <svg viewBox="0 0 24 24" width="64" height="64" fill="#f06292" xmlns="http://www.w3.org/2000/svg">
+    <g>
+      <animateTransform attributeName="transform" attributeType="XML"
+        type="rotate"
+        values="-3 12 12; 3 12 12; -3 12 12"
+        dur="0.6s"
+        repeatCount="indefinite"/>
+      <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10
+        0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9
+        2-2-.9-2-2-2zM7.16 14h9.49c.75 0 1.41-.41
+        1.75-1.03l3.58-6.49a.996.996 0
+        0 0-.87-1.48H5.21L4.27 2H1v2h2l3.6
+        7.59-1.35 2.44C4.52 14.37 5.48 16
+        7.16 16z"/>
+    </g>
+  </svg>
+</div>
+
+  <!-- Pantalla Principal -->
+  <div class="container section active" id="pantalla-principal">
+    <button onclick="mostrar('venta')">🛒 Registrar Venta</button>
+    <button onclick="mostrar('historial')">📜 Historial de Ventas</button>
+    <button onclick="mostrar('reporte')">📆 Reporte Semanal / Diario</button>
+    <button onclick="mostrar('estadisticas')">📊 Estadísticas</button>
+    <button onclick="document.getElementById('importarInput').click()">📁 Importar Datos</button>
+    <input type="file" id="importarInput" accept=".json" style="display: none" />
+  </div>
+
+  <!-- Registrar Venta -->
+  <div class="section" id="venta">
+    <button class="back" onclick="volver()">⬅️ Atrás</button>
+    <h2>🛒 Registrar Venta</h2>
+    <p>Aquí irá el formulario para registrar ventas.</p>
+  </div>
+
+  <!-- Historial de Ventas -->
+  <div class="section" id="historial">
+    <button class="back" onclick="volver()">⬅️ Atrás</button>
+    <h2>📜 Historial de Ventas</h2>
+    <p>Aquí se listarán todas las ventas realizadas.</p>
+  </div>
+
+  <!-- Reporte -->
+  <div class="section" id="reporte">
+    <button class="back" onclick="volver()">⬅️ Atrás</button>
+    <h2>📆 Reporte Semanal / Diario</h2>
+    <p>Selecciona días o semanas para generar PDF con totales.</p>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="section" id="estadisticas">
+    <button class="back" onclick="volver()">⬅️ Atrás</button>
+    <h2>📊 Estadísticas</h2>
+    <p>Aquí se mostrarán los productos más vendidos, con más ganancia, etc.</p>
+  </div>
+
+  <!-- Pie -->
+  <div class="footer">
+    📦 Total de productos: 123
+    <div class="stats">🕐 Última venta: hace 2h</div>
+  </div>
+
+  <script>
+    function mostrar(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+    function volver() {
+      mostrar('pantalla-principal');
+    }
+  </script>
+</body>
+</html>
 
