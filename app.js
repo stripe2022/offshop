@@ -197,4 +197,21 @@ window.addEventListener('DOMContentLoaded', () => {
   if (inputImportar) {
     inputImportar.addEventListener('change', importarBackup);
   }
+
+  const inputBusqueda = document.getElementById('busqueda');
+  if (inputBusqueda) {
+    inputBusqueda.addEventListener('input', (e) => {
+      const filtro = e.target.value.toLowerCase();
+      const select = document.getElementById('producto');
+      select.innerHTML = '<option value="">-- Selecciona un producto --</option>';
+      productos
+        .filter(p => p.nombre.toLowerCase().includes(filtro))
+        .forEach((p, i) => {
+          const opt = document.createElement('option');
+          opt.value = productos.indexOf(p);
+          opt.textContent = p.nombre;
+          select.appendChild(opt);
+        });
+    });
+  }
 });
