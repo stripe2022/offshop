@@ -370,12 +370,20 @@ function aplicarFiltroSemanaResumen() {
       });
     });
 
-    for (const nombre in resumenProductos) {
-      const prod = resumenProductos[nombre];
-      contenedor.innerHTML += `
-        <li><strong>${nombre}</strong>: ${prod.cantidad} unidades</li>
-      `;
-    }
+   for (const nombre in resumenProductos) {
+  const prod = resumenProductos[nombre];
+  const subtotal = prod.cantidad * prod.precioVenta;
+  contenedor.innerHTML += `
+    <li>
+      <strong>${nombre}</strong>: ${prod.cantidad} unidades
+      <span style="color: red;">($${prod.precioCosto.toFixed(2)}</span> /
+      <span style="color: green;">$${prod.precioVenta.toFixed(2)})</span>
+      <span style="color: black;"> — sub $${subtotal.toFixed(2)}</span>
+    </li>
+  `;
+}
+
+
 
     contenedor.innerHTML += '</ul>';
 
