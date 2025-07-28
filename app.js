@@ -313,3 +313,68 @@ function renderizarResultadosHistorial(lista) {
       contenedor.appendChild(div);
     });
 }
+
+function aplicarFiltroSemanaResumen() {
+  const inicio = document.getElementById('filtro-semana-inicio').value;
+  const fin = document.getElementById('filtro-semana-fin').value;
+  const contenedor = document.getElementById('resultados-historial');
+
+  if (!inicio || !fin) {
+    return alert('Selecciona un rango válido de fechas.');
+  }
+
+  const fechaInicio = new Date(inicio);
+  const fechaFin = new Date(fin);
+  fechaFin.setHours(23, 59, 59); // incluir todo el último día
+
+  const tx = db.transaction('ventas', 'readonly');
+  const store = tx.objectStore('ventas');
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    const resumenProductos = {};
+    let totalVendido = 0;
+    let inversionTotal = 0;
+
+    const ventasFiltradas = request.result.filter(v => {
+      const [d, m, y] = v.fecha.split(' ')[0].split('/');
+      const fechaVenta = new Date(`${y}-${m}-${d}`);
+      return fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
+    });
+
+    ventasFiltradas.forEach(venta => {
+      venta.productos.forEach(p => {
+        if (!resumenProductos[p.nombre]) {
+          resumenProductos[p.nombre] = {
+            cantidad: 0,
+            precioCosto: p.precioCosto,
+            precioVenta: p.precioVenta
+          };
+        }
+        resumenProductos[p.nombre].cantidad += p.cantidad;
+
+        totalVendido += p.precioVenta * p.cantidad;
+        inversionTotal += p.precioCosto * p.cantidad;
+      });
+    });
+
+    // Renderizado
+    contenedor.innerHTML = '<h3>📦 Resumen por productos</h3><ul>';
+    for (const nombre in resumenProductos) {
+      const prod = resumenProductos[nombre];
+      contenedor.innerHTML += `
+        <li><strong>${nombre}</strong>: ${prod.cantidad} unidades</li>
+      `;
+    }
+    contenedor.innerHTML += '</ul>';
+
+    const ganancia = totalVendido - inversionTotal;
+
+    contenedor.innerHTML += `
+      <hr>
+      <p><strong>💰 Total vendido:</strong> $${totalVendido.toFixed(2)}</p>
+      <p><strong>📦 Inversión total:</strong> $${inversionTotal.toFixed(2)}</p>
+      <p><strong>📈 Ganancia:</strong> $${ganancia.toFixed(2)}</p>
+    `;
+  };
+}

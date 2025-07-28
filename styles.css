@@ -304,4 +304,66 @@ button:hover {
   font-size: 0.9rem;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
+#resultados-historial {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.05);
+  max-width: 600px;
+  margin: auto;
+  font-family: sans-serif;
+}
+
+#resultados-historial h3 {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #444;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+#resultados-historial ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+#resultados-historial li {
+  padding: 0.5rem 0;
+  border-bottom: 1px dashed #ddd;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+#resultados-historial p {
+  font-size: 1rem;
+  margin: 0.3rem 0;
+}
+
+#resultados-historial p strong {
+  color: #000;
+}
+
+.botones-resumen {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.btn-resumen {
+  background-color: #ff8fa3;
+  color: #000;
+  border: none;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  min-width: 140px;
+}
+
+.btn-resumen:hover {
+  background-color: #f57c96;
+}
 

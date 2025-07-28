@@ -93,7 +93,11 @@
       <span>a</span>
       <input type="date" id="filtro-semana-fin">
 
-      <button onclick="aplicarFiltro()">🔍 Aplicar Filtro</button>
+      <div class="botones-resumen">
+  <button class="btn-resumen" onclick="aplicarFiltro()">🔍 Resumen Diario</button>
+  <button class="btn-resumen" onclick="aplicarFiltroSemanaResumen()">🔍 Resumen Semanal</button>
+</div>
+
     </div>
 
     <div class="resultados" id="resultados-historial">
