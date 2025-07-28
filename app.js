@@ -5,6 +5,13 @@ let ventas = [];
 let carrito = [];
 let db;
 
+function generarUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 // Inicializar IndexedDB
 function initDB() {
   const request = indexedDB.open("barylieDB", 1);
@@ -58,7 +65,7 @@ function guardarVenta() {
   const comentario = document.getElementById('comentario')?.value || '';
 
   const venta = {
-    id: crypto.randomUUID(),
+    id: generarUUID(),
     fecha: obtenerFechaHoraActual(),
     productos: carrito,
     total: parseFloat(document.getElementById('total').textContent),
