@@ -342,6 +342,15 @@ function aplicarFiltroSemanaResumen() {
       return fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
     });
 
+    if (ventasFiltradas.length === 0) {
+      contenedor.innerHTML = '';
+      contenedor.style.display = 'none';
+      return;
+    }
+
+    contenedor.style.display = 'block';
+    contenedor.innerHTML = '<h3>📦 Resumen por productos</h3><ul>';
+
     ventasFiltradas.forEach(venta => {
       venta.productos.forEach(p => {
         if (!resumenProductos[p.nombre]) {
@@ -352,20 +361,18 @@ function aplicarFiltroSemanaResumen() {
           };
         }
         resumenProductos[p.nombre].cantidad += p.cantidad;
-
         totalVendido += p.precioVenta * p.cantidad;
         inversionTotal += p.precioCosto * p.cantidad;
       });
     });
 
-    // Renderizado
-    contenedor.innerHTML = '<h3>📦 Resumen por productos</h3><ul>';
     for (const nombre in resumenProductos) {
       const prod = resumenProductos[nombre];
       contenedor.innerHTML += `
         <li><strong>${nombre}</strong>: ${prod.cantidad} unidades</li>
       `;
     }
+
     contenedor.innerHTML += '</ul>';
 
     const ganancia = totalVendido - inversionTotal;
