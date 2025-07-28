@@ -5,27 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Barylie Shop</title>
   <link rel="stylesheet" href="styles.css">
+  <script defer src="app.js"></script>
 </head>
 <body>
   <header>📋 Barylie Shop</header>
   <div class="animacion-header">
-  <svg viewBox="0 0 24 24" width="64" height="64" fill="#f06292" xmlns="http://www.w3.org/2000/svg">
-    <g>
-      <animateTransform attributeName="transform" attributeType="XML"
-        type="rotate"
-        values="-3 12 12; 3 12 12; -3 12 12"
-        dur="0.6s"
-        repeatCount="indefinite"/>
-      <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10
-        0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9
-        2-2-.9-2-2-2zM7.16 14h9.49c.75 0 1.41-.41
-        1.75-1.03l3.58-6.49a.996.996 0
-        0 0-.87-1.48H5.21L4.27 2H1v2h2l3.6
-        7.59-1.35 2.44C4.52 14.37 5.48 16
-        7.16 16z"/>
-    </g>
-  </svg>
-</div>
+    <svg viewBox="0 0 24 24" width="64" height="64" fill="#f06292" xmlns="http://www.w3.org/2000/svg">
+      <g>
+        <animateTransform attributeName="transform" attributeType="XML"
+          type="rotate"
+          values="-3 12 12; 3 12 12; -3 12 12"
+          dur="0.6s"
+          repeatCount="indefinite"/>
+        <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10
+          0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9
+          2-2-.9-2-2-2zM7.16 14h9.49c.75 0 1.41-.41
+          1.75-1.03l3.58-6.49a.996.996 0
+          0 0-.87-1.48H5.21L4.27 2H1v2h2l3.6
+          7.59-1.35 2.44C4.52 14.37 5.48 16
+          7.16 16z"/>
+      </g>
+    </svg>
+  </div>
 
   <!-- Pantalla Principal -->
   <div class="container section active" id="pantalla-principal">
@@ -38,17 +39,67 @@
   </div>
 
   <!-- Registrar Venta -->
-  <div class="section" id="venta">
+  <section class="section" id="venta">
     <button class="back" onclick="volver()">⬅️ Atrás</button>
     <h2>🛒 Registrar Venta</h2>
-    <p>Aquí irá el formulario para registrar ventas.</p>
-  </div>
+    <div class="formulario">
+      <label for="producto">Selecciona producto:</label>
+      <select id="producto">
+        <option value="">-- Selecciona un producto --</option>
+      </select>
+
+      <label for="cantidad">Cantidad:</label>
+      <input type="number" id="cantidad" min="1" value="1" />
+
+      <button onclick="agregarProducto()">➕ Añadir producto</button>
+    </div>
+
+    <div id="lista-productos"></div>
+
+    <div class="resumen">
+      <p><strong>📄 Recibo #<span id="numero-recibo"></span> del día</strong></p>
+      <p><strong>📅 Fecha:</strong> <span id="fecha-hora"></span></p>
+      <p><strong>💵 Total:</strong> $<span id="total"></span></p>
+
+      <div>
+        
+        <p><strong>📦 Método de entrega:</strong></p>
+        <label><input type="radio" name="entrega" value="tienda" checked /> Recogida en tienda</label><br>
+        <label><input type="radio" name="entrega" value="mensajeria" /> Envío por mensajería</label>
+      </div>
+    </div>
+     <div class="comentario">
+  <label for="comentario">📝 Comentario:</label>
+  <textarea id="comentario" placeholder="Escribe una nota o comentario adicional..."></textarea>
+</div>
+
+    <button onclick="guardarVenta()">💾 Guardar venta</button>
+  </section>
 
   <!-- Historial de Ventas -->
   <div class="section" id="historial">
     <button class="back" onclick="volver()">⬅️ Atrás</button>
     <h2>📜 Historial de Ventas</h2>
-    <p>Aquí se listarán todas las ventas realizadas.</p>
+
+    <div class="filtros">
+      <label for="filtro-dia">Día:</label>
+      <input type="date" id="filtro-dia">
+
+      <label for="filtro-semana-inicio">Semana:</label>
+      <input type="date" id="filtro-semana-inicio">
+      <span>a</span>
+      <input type="date" id="filtro-semana-fin">
+
+      <button onclick="aplicarFiltro()">🔍 Aplicar Filtro</button>
+    </div>
+
+    <div class="resultados" id="resultados-historial">
+      <!-- Aquí se mostrarán los resultados del filtro -->
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem;">
+      <button onclick="generarPDF()">📄 Generar PDF</button>
+    </div>
   </div>
 
   <!-- Reporte -->
@@ -82,4 +133,3 @@
   </script>
 </body>
 </html>
-
