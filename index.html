@@ -147,6 +147,22 @@
     📦 Total de productos: 123
     <div class="stats">🕐 Última venta: hace 2h</div>
   </div>
+  <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/offshop/service-worker.js')
+        .then(reg => {
+          console.log('✅ Service Worker registrado con éxito:', reg.scope);
+        })
+        .catch(err => {
+          console.error('❌ Error al registrar el Service Worker:', err);
+        });
+    });
+  } else {
+    console.warn('⚠️ Este navegador no soporta Service Workers.');
+  }
+</script>
+
 
   <script>
     function mostrar(id) {
