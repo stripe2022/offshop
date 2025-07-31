@@ -1,0 +1,22 @@
+{
+  "name": "Ventas y Reportes",
+  "short_name": "Ventas",
+  "description": "Sistema de ventas y reportes offline para Barylie Shop",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#ffeef2",
+  "theme_color": "#f48fb1",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
