@@ -419,9 +419,9 @@ async function generarPdfConTabla() {
   doc.setFontSize(14);
   doc.text("Resumen de Ventas - Barylie Shop", 10, 15);
 
-  const rows = [];
-
   if (tipoResumenActual === 'diario') {
+    const rows = [];
+
     const bloques = contenedor.querySelectorAll('.venta-item');
     bloques.forEach(bloque => {
       const datos = bloque.querySelectorAll('p');
@@ -445,71 +445,59 @@ async function generarPdfConTabla() {
       ]);
     });
 
-    // Tabla para resumen diario
     doc.autoTable({
       head: [["Recibo", "Fecha", "Productos", "Total", "Entrega"]],
       body: rows,
       startY: 20,
-      styles: {
-        fontSize: 8,
-        cellPadding: 2,
-      },
+      styles: { fontSize: 9, cellPadding: 2 },
       columnStyles: {
         0: { cellWidth: 25 },
-        1: { cellWidth: 30 },
-        2: { cellWidth: 70 },
-        3: { cellWidth: 20, halign: 'right' },
-        4: { cellWidth: 30 },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 60 },
+        3: { halign: 'right' },
+        4: { halign: 'center' }
       },
-      headStyles: {
-        fillColor: [255, 182, 193],
-        textColor: 0,
-        fontStyle: 'bold'
-      },
+      didDrawPage: function () {
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text(`Página ${doc.internal.getNumberOfPages()}`, 180, 290);
+      }
     });
 
   } else if (tipoResumenActual === 'semanal') {
     const resumen = {};
-    let totalVendido = 0, inversionTotal = 0;
+    let total = '', inversion = '', ganancia = '';
 
     const items = contenedor.querySelectorAll('li');
-items.forEach(li => {
-  const nombre = li.querySelector('strong')?.textContent?.trim() || '';
-  const textos = li.childNodes;
+    items.forEach(li => {
+      const nombre = li.querySelector('strong')?.textContent?.trim() || '';
+      const textos = li.childNodes;
 
-  let cantidad = 0, costo = 0, venta = 0, subtotal = 0;
+      let cantidad = 0, costo = 0, venta = 0, subtotal = 0;
 
-  textos.forEach(node => {
-    if (node.nodeType === Node.TEXT_NODE) {
-      const txt = node.textContent;
-      const match = txt.match(/: (\d+) unidades/);
-      if (match) cantidad = parseInt(match[1]);
-    } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SPAN') {
-      const spanTxt = node.textContent;
-      if (spanTxt.includes('($')) {
-        costo = parseFloat(spanTxt.replace(/[^\d.]/g, ''));
-      } else if (spanTxt.includes('$') && !spanTxt.includes('sub')) {
-        venta = parseFloat(spanTxt.replace(/[^\d.]/g, ''));
-      } else if (spanTxt.includes('sub')) {
-        subtotal = parseFloat(spanTxt.replace(/[^\d.]/g, ''));
+      textos.forEach(node => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const txt = node.textContent;
+          const match = txt.match(/: (\d+) unidades/);
+          if (match) cantidad = parseInt(match[1]);
+        } else if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'SPAN') {
+          const spanTxt = node.textContent;
+          if (spanTxt.includes('($')) {
+            costo = parseFloat(spanTxt.replace(/[^\d.]/g, ''));
+          } else if (spanTxt.includes('$') && !spanTxt.includes('sub')) {
+            venta = parseFloat(spanTxt.replace(/[^\d.]/g, ''));
+          } else if (spanTxt.includes('sub')) {
+            subtotal = parseFloat(spanTxt.replace(/[^\d.]/g, ''));
+          }
+        }
+      });
+
+      if (nombre && cantidad > 0) {
+        resumen[nombre] = { cantidad, costo, venta, subtotal };
       }
-    }
-  });
-
-  if (nombre && cantidad > 0) {
-    resumen[nombre] = {
-      cantidad,
-      costo,
-      venta,
-      subtotal
-    };
-  }
-});
-
-
+    });
 
     const pTags = contenedor.querySelectorAll('p');
-    let total = '', inversion = '', ganancia = '';
     pTags.forEach(p => {
       const txt = p.textContent;
       if (txt.includes('Total vendido')) total = txt.split('$')[1];
