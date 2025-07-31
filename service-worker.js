@@ -7,7 +7,7 @@ const ASSETS = [
   '/offshop/manifest.json',
   '/offshop/icons/icon-192.png',
   '/offshop/icons/icon-512.png',
-  '/offshop/libs/jspdf.min.js',
+  '/offshop/libs/jspdf.umd.min.js',
   '/offshop/libs/jspdf.plugin.autotable.min.js'
 ];
 
