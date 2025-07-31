@@ -33,8 +33,14 @@
     <button onclick="mostrar('venta')">🛒 Registrar Venta</button>
     <button onclick="mostrar('historial')">📆 Reporte Semanal / Diario</button>
     <button onclick="mostrar('estadisticas')">📊 Estadísticas</button>
-    <button onclick="document.getElementById('importarInput').click()">📁 Importar Datos</button>
+    <button onclick="document.getElementById('importarInput').click()">📁 Importar Lista</button>
     <input type="file" id="importarInput" accept=".json" style="display: none" />
+    <button onclick="exportarVentas()">📤 Exportar Ventas</button>
+
+    <input type="file" id="importarVentasInput" accept=".json" style="display:none" />
+    <button onclick="document.getElementById('importarVentasInput').click()">📥 Importar ventas</button>
+
+
   </div>
 
   <!-- Registrar Venta -->

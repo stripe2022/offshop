@@ -236,6 +236,11 @@ window.addEventListener('DOMContentLoaded', () => {
   if (inputImportar) {
     inputImportar.addEventListener('change', importarBackup);
   }
+  const inputImportarVentas = document.getElementById('importarVentasInput');
+if (inputImportarVentas) {
+  inputImportarVentas.addEventListener('change', importarVentas);
+}
+
 
   const inputBusqueda = document.getElementById('busqueda');
   if (inputBusqueda) {
@@ -559,3 +564,77 @@ async function generarPdfConTabla() {
 document.getElementById('generarPdf')?.addEventListener('click', generarPdfConTabla);
 
 
+function exportarVentas() {
+  if (!db) {
+    alert("La base de datos aún no está lista. Intenta de nuevo en unos segundos.");
+    return;
+  }
+
+  const tx = db.transaction("ventas", "readonly");
+  const store = tx.objectStore("ventas");
+  const request = store.getAll();
+
+  request.onsuccess = () => {
+    const ventas = request.result;
+
+    const json = JSON.stringify({ ventas }, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ventas-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  };
+
+  request.onerror = () => {
+    alert("❌ Error al exportar ventas");
+  };
+}
+function importarVentas(event) {
+  const file = event.target.files[0];
+  if (!file) {
+    alert("❌ No se seleccionó ningún archivo");
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const backup = JSON.parse(reader.result);
+      if (!Array.isArray(backup.ventas)) {
+        throw new Error("❌ El archivo no contiene un array 'ventas'");
+      }
+
+      const tx = db.transaction("ventas", "readwrite");
+      const store = tx.objectStore("ventas");
+
+      backup.ventas.forEach(venta => {
+        if (venta.id && venta.fecha && Array.isArray(venta.productos)) {
+          store.put(venta);
+        } else {
+          console.warn("❗ Venta ignorada por formato incorrecto:", venta);
+        }
+      });
+
+      tx.oncomplete = () => {
+        alert("✅ Ventas importadas correctamente");
+        console.log("Ventas importadas:", backup.ventas);
+      };
+
+      tx.onerror = (e) => {
+        console.error("❌ Error durante la transacción de importación", e);
+        alert("❌ Error al importar ventas");
+      };
+
+    } catch (e) {
+      console.error("❌ Error al leer el archivo JSON", e);
+      alert("❌ Archivo inválido o corrupto");
+    }
+  };
+
+  reader.readAsText(file);
+}
