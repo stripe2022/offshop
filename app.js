@@ -330,6 +330,9 @@ function renderizarResultadosHistorial(lista) {
         <p><strong>💵 Total:</strong> $${venta.total.toFixed(2)}</p>
         ${venta.entrega ? `<p><strong>🚚 Entrega:</strong> ${venta.entrega}</p>` : ''}
         ${venta.comentario ? `<p><strong>📝 Comentario:</strong> ${venta.comentario}</p>` : ''}
+        <button onclick="borrarVenta('${venta.id}')" style="background:red;color:white;padding:5px 10px;border:none;border-radius:5px;cursor:pointer;">
+    🗑 Borrar
+  </button>
         <hr>
       `;
       contenedor.appendChild(div);
@@ -647,3 +650,22 @@ function importarVentas(event) {
 
   reader.readAsText(file);
 }
+
+function borrarVenta(idVenta) {
+  if (!confirm("⚠️ ¿Seguro que quieres borrar este ticket? Esta acción no se puede deshacer.")) return;
+
+  const tx = db.transaction("ventas", "readwrite");
+  const store = tx.objectStore("ventas");
+  store.delete(idVenta);
+
+  tx.oncomplete = () => {
+    alert("✅ Ticket borrado correctamente");
+    aplicarFiltro(); // vuelve a cargar la lista filtrada
+  };
+
+  tx.onerror = (e) => {
+    console.error("❌ Error al borrar venta", e);
+    alert("❌ Error al borrar el ticket");
+  };
+}
+
