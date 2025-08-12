@@ -577,7 +577,7 @@ async function generarPdfConTabla() {
     doc.autoTable({
       head: [["Producto", "Cantidad", "Costo", "Precio Venta", "Subtotal"]],
       body: rowsSemanal,
-      startY: 20,
+      startY: 32,
       styles: {
         fontSize: 9,
         cellPadding: 2,
