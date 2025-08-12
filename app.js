@@ -34,6 +34,10 @@ function initDB() {
     if (!db.objectStoreNames.contains("productos")) {
       db.createObjectStore("productos", { keyPath: "codigo" });
     }
+    if (!db.objectStoreNames.contains("tickets")) {
+  db.createObjectStore("tickets", { keyPath: "fecha" });
+    }
+
   };
 }
 
@@ -47,14 +51,19 @@ function obtenerFechaHoraActual() {
 }
 
 function obtenerNumeroTicketDelDia(callback) {
-  const hoy = new Date().toISOString().split('T')[0];
-  const tx = db.transaction("ventas", "readonly");
-  const store = tx.objectStore("ventas");
-  const request = store.getAll();
+  const hoy = new Date().toISOString().split('T')[0]; // formato YYYY-MM-DD
+  const tx = db.transaction("tickets", "readwrite");
+  const store = tx.objectStore("tickets");
 
-  request.onsuccess = () => {
-    const ventasDelDia = request.result.filter(v => v.fecha.startsWith(hoy.split('-').reverse().join('/')));
-    callback(ventasDelDia.length + 1);
+  const req = store.get(hoy);
+  req.onsuccess = () => {
+    let numero = req.result?.ultimo || 0;
+    numero++;
+    store.put({ fecha: hoy, ultimo: numero });
+    callback(numero);
+  };
+  req.onerror = () => {
+    callback(1);
   };
 }
 
