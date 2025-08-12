@@ -14,7 +14,7 @@ function generarUUID() {
 }
 
 function initDB() {
-  const request = indexedDB.open("barylieDB", 1);
+  const request = indexedDB.open("barylieDB", 2);
 
   request.onerror = (event) => {
     console.error("Error al abrir IndexedDB", event);
@@ -49,23 +49,15 @@ function obtenerFechaHoraActual() {
   const opcionesHora = { hour: 'numeric', minute: '2-digit', hour12: true };
   return ahora.toLocaleDateString('es-ES', opcionesFecha) + ' ' + ahora.toLocaleTimeString('es-ES', opcionesHora);
 }
-
-function obtenerNumeroTicketDelDia(callback) {
-  const hoy = new Date().toISOString().split('T')[0]; // formato YYYY-MM-DD
-  const tx = db.transaction("tickets", "readwrite");
-  const store = tx.objectStore("tickets");
-
-  const req = store.get(hoy);
-  req.onsuccess = () => {
-    let numero = req.result?.ultimo || 0;
-    numero++;
-    store.put({ fecha: hoy, ultimo: numero });
-    callback(numero);
-  };
-  req.onerror = () => {
-    callback(1);
-  };
+function mostrarNumeroTicketActual() {
+  obtenerNumeroTicketActual((numeroTicket) => {
+    const numeroSpan = document.getElementById('numero-recibo');
+    if (numeroSpan) {
+      numeroSpan.textContent = numeroTicket; // próximo disponible
+    }
+  });
 }
+
 
 function obtenerNumeroTicketActual(callback) {
   const hoy = new Date().toISOString().split('T')[0];
@@ -75,19 +67,20 @@ function obtenerNumeroTicketActual(callback) {
   const req = store.get(hoy);
   req.onsuccess = () => {
     const ultimo = req.result?.ultimo || 0;
-    callback(ultimo + 1); // devolvemos el próximo número
+    callback(ultimo + 1);
   };
   req.onerror = () => {
-    callback(1); // si hay error real, arrancar desde 1
+    callback(1);
   };
 }
+
 
 function obtenerYActualizarNumeroTicket(callback) {
   const hoy = new Date().toISOString().split('T')[0];
   const tx = db.transaction("tickets", "readwrite");
   const store = tx.objectStore("tickets");
 
-  let nuevoNumero = 1; // valor por defecto si no hay registro previo
+  let nuevoNumero = 1;
 
   const req = store.get(hoy);
   req.onsuccess = (e) => {
@@ -96,13 +89,11 @@ function obtenerYActualizarNumeroTicket(callback) {
     store.put({ fecha: hoy, ultimo: nuevoNumero });
   };
 
-  // Llamamos al callback solo cuando la transacción se haya confirmado
   tx.oncomplete = () => {
     callback(nuevoNumero);
   };
 
   tx.onabort = tx.onerror = () => {
-    // En caso de error real, devolvemos 1 como fallback
     callback(1);
   };
 }
@@ -127,10 +118,11 @@ function actualizarTotalProductos() {
 function guardarVenta() {
   if (carrito.length === 0) return alert("Agrega al menos un producto");
 
-  const entrega = document.querySelector('input[name="entrega"]:checked').value;
+  const entregaSel = document.querySelector('input[name="entrega"]:checked');
+  const entrega = entregaSel ? entregaSel.value : ''; // por si no hay selección
   const comentario = document.getElementById('comentario')?.value || '';
 
-  obtenerNumeroTicketDelDia((numeroTicket) => {
+  obtenerYActualizarNumeroTicket((numeroTicket) => {
     const venta = {
       id: generarUUID(),
       fecha: obtenerFechaHoraActual(),
@@ -145,19 +137,29 @@ function guardarVenta() {
     const store = tx.objectStore("ventas");
     store.add(venta);
 
-    ventas.push(venta);
-    carrito = [];
-    renderizarProductos();
-    calcularTotal();
-    document.getElementById('comentario').value = '';
-    document.getElementById('producto').value = '';
-    document.getElementById('cantidad').value = '1';
+    tx.oncomplete = () => {
+      ventas.push(venta);
+      carrito = [];
+      renderizarProductos();
+      calcularTotal();
+      const cmt = document.getElementById('comentario');
+      if (cmt) cmt.value = '';
+      const sel = document.getElementById('producto');
+      if (sel) sel.value = '';
+      const cant = document.getElementById('cantidad');
+      if (cant) cant.value = '1';
 
-    mostrarNumeroTicketActual();
+      mostrarNumeroTicketActual();
+      alert(`✅ Venta #${numeroTicket} guardada correctamente`);
+    };
 
-    alert(`✅ Venta #${numeroTicket} guardada correctamente`);
+    tx.onerror = (e) => {
+      console.error("❌ Error al guardar venta", e);
+      alert("❌ Error al guardar la venta");
+    };
   });
 }
+
 
 function cargarProductosDesdeDB() {
   const tx = db.transaction("productos", "readonly");
