@@ -67,14 +67,46 @@ function obtenerNumeroTicketDelDia(callback) {
   };
 }
 
-function mostrarNumeroTicketActual() {
-  obtenerNumeroTicketDelDia((numeroTicket) => {
-    const numeroSpan = document.getElementById('numero-recibo');
-    if (numeroSpan) {
-      numeroSpan.textContent = numeroTicket;
-    }
-  });
+function obtenerNumeroTicketActual(callback) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const tx = db.transaction("tickets", "readonly");
+  const store = tx.objectStore("tickets");
+
+  const req = store.get(hoy);
+  req.onsuccess = () => {
+    const ultimo = req.result?.ultimo || 0;
+    callback(ultimo + 1); // devolvemos el próximo número
+  };
+  req.onerror = () => {
+    callback(1); // si hay error real, arrancar desde 1
+  };
 }
+
+function obtenerYActualizarNumeroTicket(callback) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const tx = db.transaction("tickets", "readwrite");
+  const store = tx.objectStore("tickets");
+
+  let nuevoNumero = 1; // valor por defecto si no hay registro previo
+
+  const req = store.get(hoy);
+  req.onsuccess = (e) => {
+    const ultimo = e.target.result?.ultimo || 0;
+    nuevoNumero = ultimo + 1;
+    store.put({ fecha: hoy, ultimo: nuevoNumero });
+  };
+
+  // Llamamos al callback solo cuando la transacción se haya confirmado
+  tx.oncomplete = () => {
+    callback(nuevoNumero);
+  };
+
+  tx.onabort = tx.onerror = () => {
+    // En caso de error real, devolvemos 1 como fallback
+    callback(1);
+  };
+}
+
 
 
 function actualizarTotalProductos() {
@@ -538,6 +570,7 @@ async function generarPdfConTabla() {
     rowsSemanal.push(['Total vendido', '', '', '', `$${total}`]);
     rowsSemanal.push(['Inversión total', '', '', '', `$${inversion}`]);
     rowsSemanal.push(['Ganancia', '', '', '', `$${ganancia}`]);
+    doc.text(`Rango: ${formatearFechaHTML(document.getElementById('filtro-semana-inicio').value)} — ${formatearFechaHTML(document.getElementById('filtro-semana-fin').value)}`, 10, 22);
 
     doc.autoTable({
       head: [["Producto", "Cantidad", "Costo", "Precio Venta", "Subtotal"]],
