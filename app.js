@@ -251,15 +251,27 @@ function importarBackup(event) {
       const tx = db.transaction("productos", "readwrite");
       const store = tx.objectStore("productos");
 
-      backup.productos.forEach(prod => {
-        if (prod && prod.codigo && prod.nombre) {
-          store.put(prod);
-        }
-      });
+      // 🔄 1) Borrar todo primero
+      const clearReq = store.clear();
+      clearReq.onsuccess = () => {
+        console.log("🧹 Productos anteriores eliminados");
+
+        // 🔄 2) Importar todos los del backup
+        backup.productos.forEach(prod => {
+          if (prod && prod.codigo && prod.nombre) {
+            store.put(prod);
+          }
+        });
+      };
 
       tx.oncomplete = () => {
         cargarProductosDesdeDB();
-        alert("✅ Productos importados con éxito");
+        alert("✅ Productos importados con éxito (wipe + restore)");
+      };
+
+      tx.onerror = (e) => {
+        console.error("❌ Error durante importación con wipe", e);
+        alert("❌ Error al importar el backup");
       };
 
     } catch (e) {
@@ -269,7 +281,6 @@ function importarBackup(event) {
 
   reader.readAsText(file);
 }
-
 
 function agregarProducto() {
   const select = document.getElementById('producto');
