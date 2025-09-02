@@ -248,27 +248,7 @@
   }
 </script>
 
- <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('DOMContentLoaded', () => {
-      navigator.serviceWorker.register('/offshop/service-worker.js', { scope: '/offshop/' })
-        .then(reg => {
-          console.log('✅ SW registrado:', reg.scope);
 
-          reg.onupdatefound = () => {
-            const nuevoSW = reg.installing;
-            nuevoSW.onstatechange = () => {
-              if (nuevoSW.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log("🆕 Hay una nueva versión disponible. Se activará cuando cierres la app.");
-              }
-            };
-          };
-        })
-        .catch(err => {
-          console.error('❌ Error al registrar el Service Worker:', err);
-        });
-    });
-  }
 </script>
 
 
