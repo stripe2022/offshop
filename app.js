@@ -76,24 +76,78 @@ function obtenerNumeroTicketActual(callback) {
 
 
 function obtenerYActualizarNumeroTicket(callback) {
-  const hoy = new Date().toISOString().split('T')[0];
-  const tx = db.transaction("tickets", "readwrite");
-  const store = tx.objectStore("tickets");
+  const hoyISO = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  const hoyDDMMYYYY = formatearFechaHTML(hoyISO);        // DD/MM/YYYY
 
-  let nuevoNumero = 1;
+  // Abrimos una transacción que abarque ambas stores para mantener consistencia
+  const tx = db.transaction(['tickets', 'ventas'], 'readwrite');
+  const ticketsStore = tx.objectStore('tickets');
+  const ventasStore  = tx.objectStore('ventas');
 
-  const req = store.get(hoy);
-  req.onsuccess = (e) => {
-    const ultimo = e.target.result?.ultimo || 0;
-    nuevoNumero = ultimo + 1;
-    store.put({ fecha: hoy, ultimo: nuevoNumero });
+  let ultimo = 0;
+  let numeroAsignado = 1;
+
+  // 1) Lee el último del día
+  const reqTicket = ticketsStore.get(hoyISO);
+  reqTicket.onsuccess = (e) => {
+    ultimo = e.target.result?.ultimo || 0;
+
+    // 2) Lee todas las ventas y detecta huecos del día actual
+    const reqVentas = ventasStore.getAll();
+    reqVentas.onsuccess = () => {
+      const ventasHoy = reqVentas.result.filter(v => 
+        typeof v.fecha === 'string' && v.fecha.startsWith(hoyDDMMYYYY)
+      );
+
+      const usados = new Set(
+        ventasHoy
+          .map(v => parseInt(v.numeroTicket, 10))
+          .filter(n => Number.isInteger(n) && n > 0)
+      );
+
+      // 3) Encuentra el menor número no usado desde 1 hasta usados.size + 1
+      // (si no hay huecos, será el siguiente a la mayor longitud)
+      let candidato = 1;
+      while (usados.has(candidato)) candidato++;
+
+      // Si hay hueco (candidato <= ultimo), úsalo; si no, siguiente al último
+      numeroAsignado = (candidato <= ultimo) ? candidato : (ultimo + 1);
+
+      // 4) Actualiza "ultimo" a como mínimo el mayor alcanzado, nunca lo bajes
+      const nuevoUltimo = Math.max(ultimo, numeroAsignado);
+      ticketsStore.put({ fecha: hoyISO, ultimo: nuevoUltimo });
+
+      // Log opcional para verificar
+      console.log(`[Tickets] hoy=${hoyISO} ultimo=${ultimo} → asignado=${numeroAsignado} → guardado.ultimo=${nuevoUltimo}`);
+    };
+
+    reqVentas.onerror = (err) => {
+      console.error('[Tickets] Error leyendo ventas para huecos', err);
+      // Fallback: si falla la lectura de ventas, usa ultimo+1
+      numeroAsignado = ultimo + 1;
+      ticketsStore.put({ fecha: hoyISO, ultimo: numeroAsignado });
+    };
+  };
+
+  reqTicket.onerror = (err) => {
+    console.error('[Tickets] Error leyendo tickets[hoy], se usará 1', err);
+    // No hay registro hoy: asigna 1 y créalo
+    numeroAsignado = 1;
+    ticketsStore.put({ fecha: hoyISO, ultimo: 1 });
   };
 
   tx.oncomplete = () => {
-    callback(nuevoNumero);
+    // Devuelve el número listo para usar en la venta
+    callback(numeroAsignado);
   };
 
-  tx.onabort = tx.onerror = () => {
+  tx.onerror = (e) => {
+    console.error('[Tickets] Transacción falló, devolviendo 1', e);
+    callback(1);
+  };
+
+  tx.onabort = (e) => {
+    console.error('[Tickets] Transacción abortada, devolviendo 1', e);
     callback(1);
   };
 }
