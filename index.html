@@ -148,20 +148,59 @@
     <div class="stats">🕐 Última venta: hace 2h</div>
   </div>
   <script>
+  // Registro del Service Worker (blindado)
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/offshop/service-worker.js')
-        .then(reg => {
-          console.log('✅ Service Worker registrado con éxito:', reg.scope);
-        })
-        .catch(err => {
-          console.error('❌ Error al registrar el Service Worker:', err);
-        });
+    // Puedes usar DOMContentLoaded; no hace falta esperar 'load'
+    window.addEventListener('DOMContentLoaded', () => {
+      navigator.serviceWorker.register('/offshop/service-worker.js', {
+        updateViaCache: 'all',
+        scope: '/offshop/'
+      }).then(reg => {
+        console.log('✅ SW registrado:', reg.scope);
+        // Muy importante: NO llames reg.update()
+      }).catch(err => {
+        console.error('❌ Error registrando SW:', err);
+      });
+
+      // Escucha mensajes del SW (logs de CLEAR_CACHE / WARMUP_CACHE, etc.)
+      navigator.serviceWorker.addEventListener('message', (ev) => {
+        console.log('📨 Mensaje del SW:', ev.data);
+      });
     });
   } else {
     console.warn('⚠️ Este navegador no soporta Service Workers.');
   }
+
+  // Utilidad para enviar comandos al SW (opcional)
+  function sendToSW(msg) {
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.controller.postMessage(msg);
+    } else {
+      console.warn('ℹ️ Aún no hay controller del SW.');
+    }
+  }
+
+  // Si luego añades botones con estos IDs, quedarán listos:
+  // <button id="btnWarmup">🔄 Precalentar caché</button>
+  // <button id="btnUseNewVersion">✅ Usar nueva versión</button>
+  // <button id="btnClearCache">🧹 Borrar caché</button>
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('btnWarmup')?.addEventListener('click', () => {
+      sendToSW({ type: 'WARMUP_CACHE' });
+    });
+    document.getElementById('btnUseNewVersion')?.addEventListener('click', () => {
+      // Solo cuando TÚ quieras activar el SW nuevo
+      sendToSW({ type: 'SKIP_WAITING' });
+      setTimeout(() => location.reload(), 400);
+    });
+    document.getElementById('btnClearCache')?.addEventListener('click', () => {
+      if (confirm('¿Borrar caché local? (IndexedDB NO se borra)')) {
+        sendToSW({ type: 'CLEAR_CACHE' });
+      }
+    });
+  });
 </script>
+
 
 
   <script>
