@@ -352,25 +352,36 @@ function renderizarResultadosHistorial(lista) {
   contenedor.style.display = 'block'; // Mostrar si hay resultados
 
   lista
-    .sort((a, b) => new Date(b.fecha.split(' ')[0].split('/').reverse().join('-')) - new Date(a.fecha.split(' ')[0].split('/').reverse().join('-')))
-    .forEach((venta) => {
-      const productos = venta.productos.map(p => `${p.nombre} x${p.cantidad}`).join(', ');
-      const div = document.createElement('div');
-      div.className = 'venta-item';
-      div.innerHTML = `
-        <p><strong>📄 Recibo #${venta.numeroTicket || '—'} del día</strong></p>
-        <p><strong>📅 Fecha:</strong> ${venta.fecha}</p>
-        <p><strong>🛒 Productos:</strong> ${productos}</p>
-        <p><strong>💵 Total:</strong> $${venta.total.toFixed(2)}</p>
-        ${venta.entrega ? `<p><strong>🚚 Entrega:</strong> ${venta.entrega}</p>` : ''}
-        ${venta.comentario ? `<p><strong>📝 Comentario:</strong> ${venta.comentario}</p>` : ''}
-        <button onclick="borrarVenta('${venta.id}')" style="background:red;color:white;padding:5px 10px;border:none;border-radius:5px;cursor:pointer;">
-    🗑 Borrar
-  </button>
-        <hr>
-      `;
-      contenedor.appendChild(div);
-    });
+  .sort((a, b) => {
+    // Orden principal: numeroTicket ASC
+    const ta = Number.isFinite(+a.numeroTicket) ? +a.numeroTicket : Number.MAX_SAFE_INTEGER;
+    const tb = Number.isFinite(+b.numeroTicket) ? +b.numeroTicket : Number.MAX_SAFE_INTEGER;
+    if (ta !== tb) return ta - tb;
+
+    // Fallback: por fecha ASC si falta numeroTicket o hay empate
+    const fa = new Date(a.fecha.split(' ')[0].split('/').reverse().join('-'));
+    const fb = new Date(b.fecha.split(' ')[0].split('/').reverse().join('-'));
+    return fa - fb;
+  })
+  .forEach((venta) => {
+    const productos = venta.productos.map(p => `${p.nombre} x${p.cantidad}`).join(', ');
+    const div = document.createElement('div');
+    div.className = 'venta-item';
+    div.innerHTML = `
+      <p><strong>📄 Recibo #${venta.numeroTicket || '—'} del día</strong></p>
+      <p><strong>📅 Fecha:</strong> ${venta.fecha}</p>
+      <p><strong>🛒 Productos:</strong> ${productos}</p>
+      <p><strong>💵 Total:</strong> $${venta.total.toFixed(2)}</p>
+      ${venta.entrega ? `<p><strong>🚚 Entrega:</strong> ${venta.entrega}</p>` : ''}
+      ${venta.comentario ? `<p><strong>📝 Comentario:</strong> ${venta.comentario}</p>` : ''}
+      <button onclick="borrarVenta('${venta.id}')" style="background:red;color:white;padding:5px 10px;border:none;border-radius:5px;cursor:pointer;">
+        🗑 Borrar
+      </button>
+      <hr>
+    `;
+    contenedor.appendChild(div);
+  });
+
 }
 
 function aplicarFiltroSemanaResumen() {
