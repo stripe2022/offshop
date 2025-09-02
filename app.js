@@ -725,6 +725,18 @@ function importarVentas(event) {
 
   const reader = new FileReader();
 
+  // Helper: convierte "DD/MM/YYYY HH:mm" -> "YYYY-MM-DD"
+  function fechaStrToISO(fechaStr) {
+    try {
+      const soloFecha = (fechaStr || '').split(' ')[0]; // "DD/MM/YYYY"
+      const [dd, mm, yyyy] = soloFecha.split('/');
+      if (!dd || !mm || !yyyy) return null;
+      return `${yyyy}-${mm.padStart(2,'0')}-${dd.padStart(2,'0')}`;
+    } catch {
+      return null;
+    }
+  }
+
   reader.onload = () => {
     try {
       const backup = JSON.parse(reader.result);
@@ -732,24 +744,61 @@ function importarVentas(event) {
         throw new Error("❌ El archivo no contiene un array 'ventas'");
       }
 
-      const tx = db.transaction("ventas", "readwrite");
-      const store = tx.objectStore("ventas");
+      // Transacción conjunta para mantener consistencia entre ventas y tickets
+      const tx = db.transaction(["ventas", "tickets"], "readwrite");
+      const ventasStore = tx.objectStore("ventas");
+      const ticketsStore = tx.objectStore("tickets");
 
-      backup.ventas.forEach(venta => {
-        if (venta.id && venta.fecha && Array.isArray(venta.productos)) {
-          store.put(venta);
-        } else {
-          console.warn("❗ Venta ignorada por formato incorrecto:", venta);
-        }
-      });
+      // 1) WIPE: borrar todas las ventas
+      const clearVentasReq = ventasStore.clear();
+      clearVentasReq.onsuccess = () => {
+        console.log("🧹 Ventas anteriores eliminadas (wipe)");
+
+        // Mapa: { "YYYY-MM-DD": maxNumeroTicket }
+        const maxPorDia = new Map();
+
+        // 2) Insertar nuevas ventas y calcular máximos por fecha
+        backup.ventas.forEach(venta => {
+          if (venta && venta.id && venta.fecha && Array.isArray(venta.productos)) {
+            try {
+              ventasStore.put(venta);
+
+              // Reconstrucción de tickets: tomar mayor numeroTicket por día
+              const iso = fechaStrToISO(venta.fecha);
+              const n = parseInt(venta.numeroTicket, 10);
+
+              if (iso && Number.isInteger(n) && n > 0) {
+                const prev = maxPorDia.get(iso) || 0;
+                if (n > prev) maxPorDia.set(iso, n);
+              }
+            } catch (e) {
+              console.warn("❗ Venta ignorada por error de formato en put:", venta, e);
+            }
+          } else {
+            console.warn("❗ Venta ignorada por formato incorrecto:", venta);
+          }
+        });
+
+        // 3) WIPE tickets y reconstruir últimos por día
+        const clearTicketsReq = ticketsStore.clear();
+        clearTicketsReq.onsuccess = () => {
+          console.log("🧹 Tickets anteriores eliminados (rebuild)");
+
+          for (const [fechaISO, ultimo] of maxPorDia.entries()) {
+            ticketsStore.put({ fecha: fechaISO, ultimo });
+          }
+        };
+      };
 
       tx.oncomplete = () => {
-        alert("✅ Ventas importadas correctamente");
-        console.log("Ventas importadas:", backup.ventas);
+        console.log("✅ Ventas importadas (wipe) y tickets reconstruidos.");
+        alert("✅ Ventas importadas correctamente (wipe + rebuild de tickets)");
+        mostrarNumeroTicketActual(); // refresca el próximo número visible
+        // Si quieres refrescar un filtro activo, puedes llamar a aplicarFiltro();
       };
 
       tx.onerror = (e) => {
-        console.error("❌ Error durante la transacción de importación", e);
+        console.error("❌ Error durante importación de ventas con wipe", e);
         alert("❌ Error al importar ventas");
       };
 
@@ -761,6 +810,7 @@ function importarVentas(event) {
 
   reader.readAsText(file);
 }
+
 
 function borrarVenta(idVenta) {
   if (!confirm("⚠️ ¿Seguro que quieres borrar este ticket? Esta acción no se puede deshacer.")) return;
