@@ -151,6 +151,17 @@ function obtenerYActualizarNumeroTicket(callback) {
     callback(1);
   };
 }
+// 🔄 Limpia la barra de búsqueda y repuebla el <select> con todos los productos
+function limpiarBusquedaYSelect() {
+  const busq = document.getElementById('busqueda');
+  if (busq) {
+    busq.value = '';
+    // Dispara el listener de 'input' que ya repuebla el <select> (con filtro vacío = todos)
+    busq.dispatchEvent(new Event('input'));
+    busq.focus(); // opcional: vuelve a enfocar para teclear rápido
+  }
+}
+
 
 
 
@@ -192,20 +203,29 @@ function guardarVenta() {
     store.add(venta);
 
     tx.oncomplete = () => {
-      ventas.push(venta);
-      carrito = [];
-      renderizarProductos();
-      calcularTotal();
-      const cmt = document.getElementById('comentario');
-      if (cmt) cmt.value = '';
-      const sel = document.getElementById('producto');
-      if (sel) sel.value = '';
-      const cant = document.getElementById('cantidad');
-      if (cant) cant.value = '1';
+  ventas.push(venta);
+  carrito = [];
+  renderizarProductos();
+  calcularTotal();
+  const cmt = document.getElementById('comentario');
+  if (cmt) cmt.value = '';
+  const sel = document.getElementById('producto');
+  if (sel) sel.value = '';
+  const cant = document.getElementById('cantidad');
+  if (cant) cant.value = '1';
 
-      mostrarNumeroTicketActual();
-      alert(`✅ Venta #${numeroTicket} guardada correctamente`);
-    };
+  // 👇 limpia la caja de búsqueda y repuebla el select
+  const busq = document.getElementById('busqueda');
+  if (busq) {
+    busq.value = '';
+    busq.dispatchEvent(new Event('input'));
+    busq.focus();
+  }
+
+  mostrarNumeroTicketActual();
+  alert(`✅ Venta #${numeroTicket} guardada correctamente`);
+};
+
 
     tx.onerror = (e) => {
       console.error("❌ Error al guardar venta", e);
@@ -306,6 +326,8 @@ function agregarProducto() {
   calcularTotal();
   select.value = '';
   cantidadInput.value = '1';
+  limpiarBusquedaYSelect();
+
 }
 
 function renderizarProductos() {
