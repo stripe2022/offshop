@@ -1,19 +1,71 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Barylie Shop</title>
-  <link rel="manifest" href="/offshop/manifest.json">
 
-  <link rel="stylesheet" href="/offshop/styles.css">
- <script src="/offshop/libs/jspdf.umd.min.js"></script>
-<script src="/offshop/libs/jspdf.plugin.autotable.min.js"></script>
-<script type="module" src="./src/app.js"></script>
+  <!-- RUTAS RELATIVAS -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="stylesheet" href="./styles.css" />
 
+  <!-- =========================
+       PDF (ONLINE primero)
+       - jsPDF UMD
+       - AutoTable plugin
+       ========================= -->
+  <script>
+    // Loader: intenta CDN primero (online), si falla usa libs locales (offline fallback).
+    (function loadPdfLibs() {
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.async = false; // mantener orden
+          s.onload = () => resolve(src);
+          s.onerror = () => reject(new Error('fail ' + src));
+          document.head.appendChild(s);
+        });
+      }
+
+      // Cambia aquí si quieres otros CDN
+      const CDN_JSPDF = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
+      const CDN_AUTOTABLE = "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js";
+
+      // Tus rutas locales (relativas)
+      const LOCAL_JSPDF = "./libs/jspdf.umd.min.js";
+      const LOCAL_AUTOTABLE = "./libs/jspdf.plugin.autotable.min.js";
+
+      // Cargar en orden (UMD primero, plugin después)
+      loadScript(CDN_JSPDF)
+        .then(() => loadScript(CDN_AUTOTABLE))
+        .then(() => {
+          console.log("✅ jsPDF cargado desde CDN");
+          window.__PDF_LIB_READY__ = true;
+        })
+        .catch(() => {
+          console.warn("⚠️ No hay CDN (offline). Intentando libs locales...");
+          loadScript(LOCAL_JSPDF)
+            .then(() => loadScript(LOCAL_AUTOTABLE))
+            .then(() => {
+              console.log("✅ jsPDF cargado desde local");
+              window.__PDF_LIB_READY__ = true;
+            })
+            .catch((e) => {
+              console.error("❌ No se pudo cargar jsPDF ni CDN ni local", e);
+              window.__PDF_LIB_READY__ = false;
+            });
+        });
+    })();
+  </script>
+
+  <!-- App modular (relativo) -->
+  <script type="module" src="./src/app.js"></script>
 </head>
+
 <body>
   <header>📋 Barylie Shop</header>
+
   <div class="animacion-header">
     <svg viewBox="0 0 24 24" width="64" height="64" fill="#f06292" xmlns="http://www.w3.org/2000/svg">
       <g>
@@ -35,43 +87,40 @@
 
   <!-- Pantalla Principal -->
   <div class="container section active" id="pantalla-principal">
-  <button onclick="mostrar('venta')">🛒 Registrar Venta</button>
-  <button onclick="mostrar('historial')">📆 Reporte Semanal / Diario</button>
-  <button onclick="mostrar('estadisticas')">📊 Estadísticas</button>
+    <button type="button" onclick="mostrar('venta')">🛒 Registrar Venta</button>
+    <button type="button" onclick="mostrar('historial')">📆 Reporte Semanal / Diario</button>
+    <button type="button" onclick="mostrar('estadisticas')">📊 Estadísticas</button>
 
-  <!-- Botón principal agrupado -->
- <button onclick="toggleSubpanel()">🔄 Gestión de Datos</button>
+    <button type="button" onclick="toggleSubpanel()">🔄 Gestión de Datos</button>
 
-<div id="subpanel-datos" style="display: none;" class="subpanel-datos">
-  <button onclick="document.getElementById('importarInput').click()">📦 Importar Lista</button>
-  <input type="file" id="importarInput" accept=".json" style="display: none" />
+    <div id="subpanel-datos" style="display:none;" class="subpanel-datos">
+      <button type="button" onclick="document.getElementById('importarInput').click()">📦 Importar Lista</button>
+      <input type="file" id="importarInput" accept=".json" style="display:none" />
 
-  <button onclick="exportarVentas()">💾 Exportar Ventas</button>
+      <button type="button" onclick="exportarVentas()">💾 Exportar Ventas</button>
 
-  <button onclick="document.getElementById('importarVentasInput').click()">📥 Importar Ventas</button>
-  <input type="file" id="importarVentasInput" accept=".json" style="display: none" />
-</div>
-
-</div>
-
+      <button type="button" onclick="document.getElementById('importarVentasInput').click()">📥 Importar Ventas</button>
+      <input type="file" id="importarVentasInput" accept=".json" style="display:none" />
+    </div>
+  </div>
 
   <!-- Registrar Venta -->
   <section class="section" id="venta">
-    <button class="back" onclick="volver()">⬅️ Atrás</button>
+    <button class="back" type="button" onclick="volver()">⬅️ Atrás</button>
     <h2>🛒 Registrar Venta</h2>
+
     <div class="formulario">
-      
       <label for="busqueda">Buscar producto:</label>
-<input type="text" id="busqueda" placeholder="Escribe para filtrar..." />
+      <input type="text" id="busqueda" placeholder="Escribe para filtrar..." autocomplete="off" />
 
       <select id="producto">
         <option value="">-- Selecciona un producto --</option>
       </select>
 
       <label for="cantidad">Cantidad:</label>
-      <input type="number" id="cantidad" min="1" value="1" />
+      <input type="number" id="cantidad" min="1" value="1" inputmode="numeric" />
 
-      <button onclick="agregarProducto()">➕ Añadir producto</button>
+      <button type="button" onclick="agregarProducto()">➕ Añadir producto</button>
     </div>
 
     <div id="lista-productos" class="lista-productos"></div>
@@ -79,180 +128,143 @@
     <div class="resumen">
       <p><strong>📄 Recibo #<span id="numero-recibo"></span> del día</strong></p>
       <p><strong>📅 Fecha:</strong> <span id="fecha-hora"></span></p>
-      <p><strong>💵 Total:</strong> $<span id="total"></span></p>
+      <p><strong>💵 Total:</strong> $<span id="total">0.00</span></p>
 
       <div>
-        
         <p><strong>📦 Método de entrega:</strong></p>
-        <label><input type="radio" name="entrega" value="tienda" checked /> Recogida en tienda</label><br>
+        <label><input type="radio" name="entrega" value="tienda" checked /> Recogida en tienda</label><br />
         <label><input type="radio" name="entrega" value="mensajeria" /> Envío por mensajería</label>
       </div>
     </div>
-     <div class="comentario">
-  <label for="comentario">📝 Comentario:</label>
-  <textarea id="comentario" placeholder="Escribe una nota o comentario adicional..."></textarea>
-</div>
 
-    <button onclick="guardarVenta()">💾 Guardar venta</button>
+    <div class="comentario">
+      <label for="comentario">📝 Comentario:</label>
+      <textarea id="comentario" placeholder="Escribe una nota o comentario adicional..."></textarea>
+    </div>
+
+    <button type="button" onclick="guardarVenta()">💾 Guardar venta</button>
   </section>
 
   <!-- Historial de Ventas -->
   <div class="section" id="historial">
-    <button class="back" onclick="volver()">⬅️ Atrás</button>
+    <button class="back" type="button" onclick="volver()">⬅️ Atrás</button>
     <h2>📜 Historial de Ventas</h2>
 
     <div class="filtros">
       <label for="filtro-dia">Día:</label>
-      <input type="date" id="filtro-dia">
+      <input type="date" id="filtro-dia" />
 
       <label for="filtro-semana-inicio">Semana:</label>
-      <input type="date" id="filtro-semana-inicio">
+      <input type="date" id="filtro-semana-inicio" />
       <span>a</span>
-      <input type="date" id="filtro-semana-fin">
+      <input type="date" id="filtro-semana-fin" />
 
       <div class="botones-resumen">
-  <button class="btn-resumen" onclick="aplicarFiltro()">🔍 Resumen Diario</button>
-  <button class="btn-resumen" onclick="aplicarFiltroSemanaResumen()">🔍 Resumen Semanal</button>
-</div>
-
+        <button class="btn-resumen" type="button" onclick="aplicarFiltro()">🔍 Resumen Diario</button>
+        <button class="btn-resumen" type="button" onclick="aplicarFiltroSemanaResumen()">🔍 Resumen Semanal</button>
+      </div>
     </div>
 
-    <div class="resultados" id="resultados-historial">
-      <!-- Aquí se mostrarán los resultados del filtro -->
+    <div class="resultados" id="resultados-historial"></div>
+
+    <div style="text-align:center; margin-top:2rem;">
+      <button id="generarPdf" type="button">📄 Generar PDF</button>
+      <div id="pdf-status" style="font-size:12px; opacity:.75; margin-top:.5rem;"></div>
     </div>
-
-    <div style="text-align: center; margin-top: 2rem;">
-      <button id="generarPdf">📄 Generar PDF</button>
-
-
-    </div>
-  </div>
-
-  <!-- Reporte -->
-  <div class="section" id="reporte">
-    <button class="back" onclick="volver()">⬅️ Atrás</button>
-    <h2>📆 Reporte Semanal / Diario</h2>
-    <p>Selecciona días o semanas para generar PDF con totales.</p>
   </div>
 
   <!-- Estadísticas -->
   <div class="section" id="estadisticas">
-    <button class="back" onclick="volver()">⬅️ Atrás</button>
+    <button class="back" type="button" onclick="volver()">⬅️ Atrás</button>
     <h2>📊 Estadísticas</h2>
     <p>Aquí se mostrarán los productos más vendidos, con más ganancia, etc.</p>
   </div>
 
   <!-- Pie -->
   <div class="footer">
-    📦 Total de productos: 123
-    <div class="stats">🕐 Última venta: hace 2h</div>
+    📦 Total de productos: <span id="total-productos">0</span>
+    <div class="stats">🕐 Última venta: <span id="ultima-venta">—</span></div>
   </div>
+
+  <!-- Service Worker (rutas relativas) -->
   <script>
-  // Registro del Service Worker (blindado)
-  if ('serviceWorker' in navigator) {
-    // Puedes usar DOMContentLoaded; no hace falta esperar 'load'
-    window.addEventListener('DOMContentLoaded', () => {
-      navigator.serviceWorker.register('/offshop/service-worker.js', {
-        updateViaCache: 'all',
-        scope: '/offshop/'
-      }).then(reg => {
-        console.log('✅ SW registrado:', reg.scope);
-        // Muy importante: NO llames reg.update()
-      }).catch(err => {
-        console.error('❌ Error registrando SW:', err);
-      });
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('DOMContentLoaded', () => {
+        navigator.serviceWorker.register('./service-worker.js', {
+          updateViaCache: 'all',
+          scope: './'
+        }).then(reg => {
+          console.log('✅ SW registrado:', reg.scope);
+        }).catch(err => {
+          console.error('❌ Error registrando SW:', err);
+        });
 
-      // Escucha mensajes del SW (logs de CLEAR_CACHE / WARMUP_CACHE, etc.)
-      navigator.serviceWorker.addEventListener('message', (ev) => {
-        console.log('📨 Mensaje del SW:', ev.data);
+        navigator.serviceWorker.addEventListener('message', (ev) => {
+          console.log('📨 Mensaje del SW:', ev.data);
+        });
       });
-    });
-  } else {
-    console.warn('⚠️ Este navegador no soporta Service Workers.');
-  }
-
-  // Utilidad para enviar comandos al SW (opcional)
-  function sendToSW(msg) {
-    if (navigator.serviceWorker?.controller) {
-      navigator.serviceWorker.controller.postMessage(msg);
-    } else {
-      console.warn('ℹ️ Aún no hay controller del SW.');
     }
-  }
+  </script>
 
-  // Si luego añades botones con estos IDs, quedarán listos:
-  // <button id="btnWarmup">🔄 Precalentar caché</button>
-  // <button id="btnUseNewVersion">✅ Usar nueva versión</button>
-  // <button id="btnClearCache">🧹 Borrar caché</button>
-  window.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('btnWarmup')?.addEventListener('click', () => {
-      sendToSW({ type: 'WARMUP_CACHE' });
-    });
-    document.getElementById('btnUseNewVersion')?.addEventListener('click', () => {
-      // Solo cuando TÚ quieras activar el SW nuevo
-      sendToSW({ type: 'SKIP_WAITING' });
-      setTimeout(() => location.reload(), 400);
-    });
-    document.getElementById('btnClearCache')?.addEventListener('click', () => {
-      if (confirm('¿Borrar caché local? (IndexedDB NO se borra)')) {
-        sendToSW({ type: 'CLEAR_CACHE' });
-      }
-    });
-  });
-</script>
-
-
-
+  <!-- UI Navegación (sin tocar carrito/app state) -->
   <script>
     function mostrar(id) {
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
+      document.getElementById(id)?.classList.add('active');
     }
-   function volver() {
-  // Mostrar pantalla principal
-  mostrar('pantalla-principal');
 
-  // Limpiar filtros
-  document.getElementById('filtro-dia').value = '';
-  document.getElementById('filtro-semana-inicio').value = '';
-  document.getElementById('filtro-semana-fin').value = '';
+    function volver() {
+      mostrar('pantalla-principal');
 
-  // Limpiar resultados del historial
-  const contenedor = document.getElementById('resultados-historial');
-  if (contenedor) {
-    contenedor.innerHTML = '';
-    contenedor.style.display = 'none';
-  }
+      // limpiar filtros
+      const d = document.getElementById('filtro-dia');
+      const i = document.getElementById('filtro-semana-inicio');
+      const f = document.getElementById('filtro-semana-fin');
+      if (d) d.value = '';
+      if (i) i.value = '';
+      if (f) f.value = '';
 
-  // Limpiar campos de entrada
-  const comentario = document.getElementById('comentario');
-  if (comentario) comentario.value = '';
+      // limpiar historial visual
+      const cont = document.getElementById('resultados-historial');
+      if (cont) {
+        cont.innerHTML = '';
+        cont.style.display = 'none';
+      }
 
-  const select = document.getElementById('producto');
-  if (select) select.value = '';
+      // limpiar inputs
+      const comentario = document.getElementById('comentario');
+      if (comentario) comentario.value = '';
+      const select = document.getElementById('producto');
+      if (select) select.value = '';
+      const cantidad = document.getElementById('cantidad');
+      if (cantidad) cantidad.value = '1';
+    }
 
-  const cantidad = document.getElementById('cantidad');
-  if (cantidad) cantidad.value = '1';
+    function toggleSubpanel() {
+      const panel = document.getElementById('subpanel-datos');
+      if (!panel) return;
+      panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+    }
 
-  // Vaciar el carrito
-  carrito = [];
-  renderizarProductos();
-  calcularTotal();
-}
+    // Indicador visual para PDF libs
+    window.addEventListener('DOMContentLoaded', () => {
+      const status = document.getElementById('pdf-status');
+      if (!status) return;
 
+      const t = setInterval(() => {
+        if (window.__PDF_LIB_READY__ === true) {
+          status.textContent = "✅ PDF listo (jsPDF cargado)";
+          clearInterval(t);
+        } else if (window.__PDF_LIB_READY__ === false) {
+          status.textContent = "❌ PDF no disponible (sin CDN y sin libs locales)";
+          clearInterval(t);
+        } else {
+          status.textContent = "⏳ Cargando módulo PDF...";
+        }
+      }, 200);
+
+      setTimeout(() => clearInterval(t), 8000);
+    });
   </script>
-  <script>
-  function toggleSubpanel() {
-    const panel = document.getElementById('subpanel-datos');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-  }
-</script>
-
-
-</script>
-
-
-
-
 </body>
 </html>
