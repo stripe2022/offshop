@@ -1,7 +1,23 @@
-import { initDB, cargarProductosDesdeDB, obtenerNumeroTicketActual,
-         importarBackupProductos, exportarVentasDB, importarVentasWipeRebuildTickets } from './db.js';
+// /src/app.js
+
+import {
+  initDB,
+  cargarProductosDesdeDB,
+  obtenerNumeroTicketActual,
+  importarBackupProductos,
+  exportarVentasDB,
+  importarVentasWipeRebuildTickets
+} from './db.js';
+
 import { ordenarProductosPorNombre } from './products.js';
-import { getCarrito, agregarAlCarrito, eliminarDelCarrito, totalCarrito } from './cart.js';
+
+import {
+  getCarrito,
+  agregarAlCarrito,
+  eliminarDelCarrito,
+  totalCarrito
+} from './cart.js';
+
 import {
   poblarSelectProductos,
   actualizarTotalProductosUI,
@@ -12,13 +28,27 @@ import {
   resetInputsDespuesGuardarVenta,
   setNumeroReciboUI
 } from './ui.js';
-import { obtenerFechaHoraActual, formatearFechaHTML } from './utils.js';
-import { guardarVenta, aplicarFiltroDiarioSemana, borrarVenta as borrarVentaSrv } from './sales.js';
+
+import { obtenerFechaHoraActual } from './utils.js';
+
+import {
+  guardarVenta,
+  aplicarFiltroDiarioSemana,
+  borrarVenta as borrarVentaSrv
+} from './sales.js';
+
 import { resumenSemanalPorProductos } from './reports.js';
 import { generarPdfConTabla } from './pdf.js';
 
+// ✅ Scanner (PASO 1: solo leer QR y mostrar texto)
+import { startScan, stopScan } from './scanner.js';
+
 let productos = [];
 let tipoResumenActual = ''; // 'diario' | 'semanal'
+
+// Guardamos el último texto escaneado (PASO 1)
+let lastQRText = '';
+window.__LAST_QR__ = () => lastQRText;
 
 // ========= UI helpers =========
 async function refrescarProductosUI() {
@@ -63,6 +93,55 @@ function aplicarFiltroBusquedaSelect() {
   });
 }
 
+// ========= Scanner UI (PASO 1) =========
+function wireScannerUI() {
+  const btnScan = document.getElementById('btn-scan-qr');
+  const btnStop = document.getElementById('btn-stop-scan');
+  const box = document.getElementById('scanner-box');
+  const videoEl = document.getElementById('qr-video');
+  const statusEl = document.getElementById('scan-status');
+
+  // Si el HTML todavía no tiene el panel, no hacemos nada
+  if (!btnScan || !btnStop || !box || !videoEl || !statusEl) return;
+
+  // Cooldown para que no lea el mismo QR 10 veces seguidas
+  let lastReadAt = 0;
+  const COOLDOWN_MS = 1200;
+
+  btnScan.addEventListener('click', async () => {
+    box.style.display = 'block';
+    statusEl.textContent = '⏳ Preparando escáner...';
+
+    try {
+      await startScan({
+        videoEl,
+        statusEl,
+        onText: async (text) => {
+          const now = Date.now();
+          if (now - lastReadAt < COOLDOWN_MS) return;
+          lastReadAt = now;
+
+          lastQRText = String(text || '').trim();
+          console.log('📦 QR detectado:', lastQRText);
+
+          // PASO 1: solo mostrarlo en el status (ya lo hace scanner.js)
+          // Si quieres detener tras 1 lectura, descomenta:
+          // stopScan({ videoEl, statusEl });
+          // box.style.display = 'none';
+        }
+      });
+    } catch (e) {
+      console.error(e);
+      statusEl.textContent = `❌ ${e.message || e}`;
+    }
+  });
+
+  btnStop.addEventListener('click', () => {
+    stopScan({ videoEl, statusEl });
+    box.style.display = 'none';
+  });
+}
+
 // ========= Funciones principales =========
 async function onAgregarProducto() {
   const select = document.getElementById('producto');
@@ -101,7 +180,8 @@ async function onGuardarVenta() {
     await mostrarNumeroTicketActual();
 
     alert(`✅ Venta #${venta.numeroTicket} guardada correctamente`);
-  } catch {
+  } catch (e) {
+    console.error(e);
     alert("❌ Error al guardar la venta");
   }
 }
@@ -186,10 +266,6 @@ async function aplicarFiltroSemanaResumen() {
     return;
   }
 
-  const fechaInicio = new Date(inicio);
-  const fechaFin = new Date(fin);
-  fechaFin.setHours(23, 59, 59);
-
   const filtradas = await aplicarFiltroDiarioSemana({ dia: '', inicio, fin });
 
   if (!filtradas.length) {
@@ -203,19 +279,21 @@ async function aplicarFiltroSemanaResumen() {
   contenedor.style.display = 'block';
   contenedor.innerHTML = '<h3>📦 Resumen por productos</h3><ul>';
 
-  for (const nombre in resumenProductos) {
-    const prod = resumenProductos[nombre];
-    const subtotal = prod.cantidad * prod.precioVenta;
+  Object.keys(resumenProductos)
+    .sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }))
+    .forEach(nombre => {
+      const prod = resumenProductos[nombre];
+      const subtotal = prod.cantidad * prod.precioVenta;
 
-    contenedor.innerHTML += `
-      <li>
-        <strong>${nombre}</strong>: ${prod.cantidad} unidades
-        <span style="color: red;">($${prod.precioCosto.toFixed(2)}</span> /
-        <span style="color: green;">$${prod.precioVenta.toFixed(2)})</span>
-        <span style="color: black;"> — sub $${subtotal.toFixed(2)}</span>
-      </li>
-    `;
-  }
+      contenedor.innerHTML += `
+        <li>
+          <strong>${nombre}</strong>: ${prod.cantidad} unidades
+          <span style="color: red;">($${prod.precioCosto.toFixed(2)}</span> /
+          <span style="color: green;">$${prod.precioVenta.toFixed(2)})</span>
+          <span style="color: black;"> — sub $${subtotal.toFixed(2)}</span>
+        </li>
+      `;
+    });
 
   contenedor.innerHTML += '</ul>';
   contenedor.innerHTML += `
@@ -259,6 +337,9 @@ window.addEventListener('DOMContentLoaded', () => {
   const fechaElem = document.getElementById('fecha-hora');
   if (fechaElem) fechaElem.textContent = obtenerFechaHoraActual();
 
+  // ✅ Wire scanner UI (PASO 1)
+  wireScannerUI();
+
   initDB({
     onReady: async () => {
       await refrescarProductosUI();
@@ -296,7 +377,7 @@ window.addEventListener('DOMContentLoaded', () => {
     generarPdfConTabla({ tipoResumenActual })
   );
 
-  // Si tus botones son inline onclick, exponemos:
+  // Exponer para HTML inline onclick
   window.agregarProducto = onAgregarProducto;
   window.guardarVenta = onGuardarVenta;
   window.aplicarFiltro = aplicarFiltro;

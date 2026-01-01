@@ -29,6 +29,7 @@
       }
 
       // Cambia aquí si quieres otros CDN
+      
       const CDN_JSPDF = "https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js";
       const CDN_AUTOTABLE = "https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js";
 
@@ -60,6 +61,7 @@
   </script>
 
   <!-- App modular (relativo) -->
+   <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js"></script>
   <script type="module" src="./src/app.js"></script>
 </head>
 
@@ -108,6 +110,25 @@
   <section class="section" id="venta">
     <button class="back" type="button" onclick="volver()">⬅️ Atrás</button>
     <h2>🛒 Registrar Venta</h2>
+    <!-- SCANNER QR -->
+<div class="scanner-panel">
+  <button type="button" id="btn-scan-qr" class="btn-scan">
+    📷 Escanear QR (Lazy Barylie)
+  </button>
+
+  <div id="scanner-box" style="display:none;">
+    <video id="qr-video" playsinline></video>
+
+    <div class="scanner-actions">
+      <button type="button" id="btn-stop-scan">⏹ Detener</button>
+    </div>
+
+    <div id="scan-status" class="scan-status">
+      Esperando escaneo…
+    </div>
+  </div>
+</div>
+
 
     <div class="formulario">
       <label for="busqueda">Buscar producto:</label>
